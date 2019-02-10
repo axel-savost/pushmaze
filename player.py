@@ -1,7 +1,12 @@
 from entity import Entity
 
 class Player(Entity):
-    def __init__(self, x=0, y=0):
-        self.x = x
-        self.y = y
+    def __init__(self, x, y):
+        super().__init__()
         self.looks_like = "player"
+        self.hspeed=0
+        self.vspeed=0
+
+    def step(self):
+        self.x += self.hspeed
+        self.y += self.vspeed
