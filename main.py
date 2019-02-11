@@ -4,7 +4,14 @@ from pyglet.window import key
 from pyglet import sprite
 
 verbose = False
+PLAYER_SPEED = 2
 window = pyglet.window.Window()
+
+# key booleans
+rdown = False
+udown = False
+ldown = False
+ddown = False
 
 # Images go here
 temp = pyglet.resource.image('res/img/player.png')
@@ -49,43 +56,48 @@ def on_draw():
         spr.draw()
 
 def update(dt):
-    player.step()
+    player.stop()
 
+    if rdown and not ldown:
+        player.hspeed = PLAYER_SPEED
+        SPRITES.get("player").rotation=90
+    if ldown and not rdown:
+        player.hspeed = -PLAYER_SPEED
+        SPRITES.get("player").rotation=270
+    if udown and not ddown:
+        player.vspeed = PLAYER_SPEED
+        SPRITES.get("player").rotation=0
+    if ddown and not udown:
+        player.vspeed = -PLAYER_SPEED
+        SPRITES.get("player").rotation=180
+
+    player.step()
 
 
 @window.event
 def on_key_press(symbol, modifiers):
-    global things
+    global rdown, ldown, udown, ddown
 
     if symbol == key.RIGHT:
-        player.hspeed = 4
-        player.vspeed = 0
-        SPRITES.get("player").rotation=90
+        rdown = True
     elif symbol == key.LEFT:
-        player.hspeed = -4
-        player.vspeed = 0
-        SPRITES.get("player").rotation=270
+        ldown = True
     elif symbol == key.UP:
-        player.hspeed = 0
-        player.vspeed = 4
-        SPRITES.get("player").rotation=0
+        udown = True
     elif symbol == key.DOWN:
-        player.hspeed = 0
-        player.vspeed = -4
-        SPRITES.get("player").rotation=180
-    if verbose:
-        print(things)
+        ddown = True
 
 @window.event
 def on_key_release(symbol, modifiers):
+    global rdown, ldown, udown, ddown
     if symbol == key.RIGHT:
-        player.hspeed = 0
+        rdown = False
     elif symbol == key.LEFT:
-        player.hspeed = 0
+        ldown = False
     elif symbol == key.UP:
-        player.vspeed = 0
+        udown = False
     elif symbol == key.DOWN:
-        player.vspeed = 0
+        ddown = False
     
 
 pyglet.clock.schedule_interval(update, 1/60.0)

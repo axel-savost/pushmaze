@@ -10,3 +10,7 @@ class Player(Entity):
     def step(self):
         self.x += self.hspeed
         self.y += self.vspeed
+
+    def stop(self):
+        self.hspeed = 0
+        self.vspeed = 0
