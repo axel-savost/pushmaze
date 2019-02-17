@@ -6,6 +6,8 @@ class Player(Entity):
         self.looks_like = "player"
         self.hspeed=0
         self.vspeed=0
+        self.hfacing=0
+        self.vfacing=1
 
     def step(self):
         self.x += self.hspeed
