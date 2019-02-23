@@ -32,6 +32,8 @@ spr_default = sprite.Sprite(pyglet.resource.image('res/img/default.png'),batch=b
 bg_gravel = sprite.Sprite(pyglet.resource.image('res/img/bg_gravel.png'))
 bg_grass = sprite.Sprite(pyglet.resource.image('res/img/bg_grass.png'))
 
+sndplayer = pyglet.media.Player()
+
 spr_player.anchor_x=16
 spr_player.anchor_y=16
 
@@ -70,11 +72,16 @@ def is_snapped(entity):
         return False
 
 def is_blocked(x,y):
+    if x<0 or y<0 or x>=640 or y>=480:
+        return True
+
     for t in things:
         if t.looks_like == "block" and t.x == x and t.y == y:
             return True
 
 def is_colliding(a,b):
+    if a == b:
+        return False
     if a.x + TILE_SIZE > b.x and a.x < b.x + TILE_SIZE:
         if a.y + TILE_SIZE > b.y and a.y < b.y + TILE_SIZE:
             return True
@@ -111,6 +118,11 @@ def on_draw():
         if thing.looks_like == "player":
             spr.x+=16
             spr.y+=16
+
+        if thing.looks_like == "block":
+            spr.opacity = 255 * (1 - thing.crushed)
+            if thing.crushed > 0:
+                print(thing.crushed)
         spr.draw()
 
 def update(dt):
@@ -141,33 +153,43 @@ def update(dt):
             player.hfacing = 0
             player.vfacing = -1
 
-    if not is_blocked(player.x + player.hspeed*TILE_SIZE/PLAYER_SPEED, player.y + player.vspeed*TILE_SIZE/PLAYER_SPEED):
+    if not is_blocked(player.x + player.hfacing*TILE_SIZE, player.y + player.vfacing*TILE_SIZE):
         player.step()
     elif pdown and is_snapped(player):
         bl = get_entity(player.x + player.hfacing*TILE_SIZE, player.y + player.vfacing*TILE_SIZE,"block")
         if not bl.is_moving():
-            bl.get_pushed(player.hfacing,player.vfacing)
+            if is_blocked(player.x + player.hfacing*TILE_SIZE*2, player.y + player.vfacing*TILE_SIZE*2):
+                bl.crush()
+            else:
+                bl.get_pushed(player.hfacing,player.vfacing)
 
 
     for b in things:
         if b.looks_like == "block":
-            if b.is_moving():
-                b.update()
-                for q in things:
-                    if not b == q and is_colliding(b,q) and q.looks_like == "block":
-                        if b.hspeed == q.hspeed or b.vspeed == q.vspeed:
-                            b.x -= b.hspeed
-                            b.y -= b.vspeed
-                            th = b.hspeed
-                            tv = b.vspeed
-                            b.hspeed = q.hspeed
-                            b.vspeed = q.vspeed
-                            q.hspeed = th
-                            q.vspeed = tv
-                            
-                            break
-                        else:
+            if b.crushed >= 1:
+                things.remove(b)
+                print("CRUSHED!!!")
+                continue
+        
+            b.update()
+
+            for q in things:
+                if is_colliding(b,q) and q.looks_like == "block":
+                    if b.hspeed == q.hspeed or b.vspeed == q.vspeed:
+                        b.x -= b.hspeed
+                        b.y -= b.vspeed
+                        th = b.hspeed
+                        tv = b.vspeed
+                        b.hspeed = q.hspeed
+                        b.vspeed = q.vspeed
+                        q.hspeed = th
+                        q.vspeed = tv
+                        
+                        #break
+                    else:
+                        if not b.hspeed == 0 and q.hspeed == 0:
                             b.bounce()
+                            sndplayer.queue(pyglet.media.load('res/snd/item1a.wav'))
                 
 
 
