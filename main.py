@@ -2,9 +2,13 @@ import pyglet
 import player
 import block
 import enemy
+import entity
 from pyglet.window import key
 from pyglet import sprite
 
+
+DUMMY_ENTITY = entity.Entity(0,0)
+frame = 0
 verbose = False
 PLAYER_SPEED = 4
 TILE_SIZE = 32
@@ -29,15 +33,27 @@ spr_metalbl = sprite.Sprite(pyglet.resource.image('res/img/block_metal.png'),bat
 spr_ghost = sprite.Sprite(pyglet.resource.image('res/img/ghost.png'),batch=batch)
 spr_default = sprite.Sprite(pyglet.resource.image('res/img/default.png'),batch=batch)
 
+#Testing purposes only
+spr_teston = sprite.Sprite(pyglet.resource.image('res/img/TESTON.png'),batch=batch)
+spr_testoff = sprite.Sprite(pyglet.resource.image('res/img/TESTOFF.png'),batch=batch)
+
+
 bg_gravel = sprite.Sprite(pyglet.resource.image('res/img/bg_gravel.png'))
 bg_grass = sprite.Sprite(pyglet.resource.image('res/img/bg_grass.png'))
 
 sndplayer = pyglet.media.Player()
 
+snd_crush = pyglet.resource.media("res/snd/Crush.ogg", streaming=False)
+snd_bounce = pyglet.resource.media("res/snd/Bounce.ogg", streaming=False)
+snd_powerup = pyglet.resource.media("res/snd/Powerup.ogg", streaming=False)
+snd_shoot = pyglet.resource.media("res/snd/Shoot.ogg", streaming=False)
+snd_settle = pyglet.resource.media("res/snd/Settle.ogg", streaming=False)
+snd_shoot = pyglet.resource.media("res/snd/Shoot.ogg", streaming=False)
+
 spr_player.anchor_x=16
 spr_player.anchor_y=16
 
-player = player.Player(x=256,y=256)
+player = player.Player(x=320,y=320)
 things = [player]
 # Generate blocks around the edges
 for i in range(0,640,TILE_SIZE):
@@ -72,12 +88,15 @@ def is_snapped(entity):
         return False
 
 def is_blocked(x,y):
-    if x<0 or y<0 or x>=640 or y>=480:
+    if x<0 or y<0 or x>640-TILE_SIZE or y>480-TILE_SIZE:
         return True
 
     for t in things:
-        if t.looks_like == "block" and t.x == x and t.y == y:
-            return True
+        if t.looks_like == "block":
+            if (t.x + TILE_SIZE > x and t.x <= x + TILE_SIZE) and (t.y + TILE_SIZE > y and t.y <= y + TILE_SIZE):
+                return True
+
+    return False
 
 def is_colliding(a,b):
     if a == b:
@@ -90,14 +109,15 @@ def is_colliding(a,b):
 
 def get_entity(x, y, look):
     for t in things:
-        if t.looks_like == look and t.x == x and t.y == y:
+        if t.looks_like == look and t.x + TILE_SIZE > x and t.x <= x and t.y + TILE_SIZE > y and t.y <= y:
             return t
 
-    print("Warning: Entity not found.")
-    return 0
+    return DUMMY_ENTITY
 
 @window.event
 def on_draw():
+    global frame
+
     window.clear()
 
     for h in range(2):
@@ -105,6 +125,16 @@ def on_draw():
             bg_grass.x = n * 256
             bg_grass.y = h * 256
             bg_grass.draw()
+
+    if is_blocked(frame % 640,frame % 480):
+        drawthis = spr_testoff
+    else:
+        drawthis = spr_teston
+    
+    drawthis.x = frame % 640
+    drawthis.y = frame % 480
+    drawthis.draw()
+
 
     for thing in things:
 
@@ -121,54 +151,72 @@ def on_draw():
 
         if thing.looks_like == "block":
             spr.opacity = 255 * (1 - thing.crushed)
-            if thing.crushed > 0:
-                print(thing.crushed)
         spr.draw()
 
 def update(dt):
-    global rdown, ldown, udown, ddown, pdown
+    global rdown, ldown, udown, ddown, pdown, frame
 
-    if is_snapped(player):
-        player.stop()
+    frame += 1
 
-    if player.hspeed == 0 and player.vspeed == 0 and is_snapped(player):
+    if is_snapped(player): #If on the grid
+        player.stop() #Stop moving
+
+        pressing = False
+
+        #Rotate if movement keys are pressed
         if rdown and not ldown:
-            player.hspeed = PLAYER_SPEED
             SPRITES.get("player").rotation=90
             player.hfacing = 1
             player.vfacing = 0
+            pressing = True
         elif ldown and not rdown:
-            player.hspeed = -PLAYER_SPEED
             SPRITES.get("player").rotation=270
             player.hfacing = -1
             player.vfacing = 0
+            pressing = True
         elif udown and not ddown:
-            player.vspeed = PLAYER_SPEED
             SPRITES.get("player").rotation=0
             player.hfacing = 0
             player.vfacing = 1
+            pressing = True
         elif ddown and not udown:
-            player.vspeed = -PLAYER_SPEED
             SPRITES.get("player").rotation=180
             player.hfacing = 0
             player.vfacing = -1
+            pressing = True
 
-    if not is_blocked(player.x + player.hfacing*TILE_SIZE, player.y + player.vfacing*TILE_SIZE):
-        player.step()
-    elif pdown and is_snapped(player):
         bl = get_entity(player.x + player.hfacing*TILE_SIZE, player.y + player.vfacing*TILE_SIZE,"block")
-        if not bl.is_moving():
-            if is_blocked(player.x + player.hfacing*TILE_SIZE*2, player.y + player.vfacing*TILE_SIZE*2):
-                bl.crush()
-            else:
-                bl.get_pushed(player.hfacing,player.vfacing)
+        bl2 = get_entity(player.x + player.hfacing*TILE_SIZE*2, player.y + player.vfacing*TILE_SIZE*2,"block")
+        #if bl == DUMMY_ENTITY:
+        #    print("You are free to move forward.")
+        #else:
+        #    print(str(bl) + " is blocking your path.")
+
+        if bl == DUMMY_ENTITY:
+            if pressing:
+                player.hspeed = player.hfacing * PLAYER_SPEED
+                player.vspeed = player.vfacing * PLAYER_SPEED
+                player.step() # On the grid and free space ahead
+        elif pdown:
+            if not bl.is_moving():
+                if not bl2 == DUMMY_ENTITY:
+                    if bl.crushed == 0:
+                        snd_crush.play()
+                    bl.crush()
+                else:
+                    bl.get_pushed(player.hfacing,player.vfacing)
+                    snd_shoot.play()
+
+    else: #If not on the grid
+        player.step() # Not on the grid, nowhere to go but forward
+
+ 
 
 
     for b in things:
         if b.looks_like == "block":
             if b.crushed >= 1:
                 things.remove(b)
-                print("CRUSHED!!!")
                 continue
         
             b.update()

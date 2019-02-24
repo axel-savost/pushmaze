@@ -10,6 +10,8 @@ class Entity:
     def snap(self,tile):
         self.x = int(round(self.x / float(tile))) * tile
         self.y = int(round(self.y / float(tile))) * tile
+        if not self.x % 32 == 0 or not self.y % 32 == 0:
+            print("SNAPPED WRONG")
 
     def stop(self):
         self.hspeed = 0
@@ -24,3 +26,6 @@ class Entity:
             return False
         else:
             return True
+
+    def x_after_step(self):
+        return self.x + self.hspeed
