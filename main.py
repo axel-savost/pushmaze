@@ -2,16 +2,11 @@ import pyglet
 import player
 import block
 import enemy
-import entity
+import constants
 from pyglet.window import key
 from pyglet import sprite
 
-
-DUMMY_ENTITY = entity.Entity(0,0)
 frame = 0
-verbose = False
-PLAYER_SPEED = 4
-TILE_SIZE = 32
 window = pyglet.window.Window()
 batch = pyglet.graphics.Batch()
 
@@ -23,25 +18,23 @@ ddown = False
 pdown = False
 
 # Images go here
-temp = pyglet.resource.image('res/img/player.png')
+temp = pyglet.resource.image('res/img/Player.png')
 temp.anchor_x = 16
 temp.anchor_y = 16
 spr_player = sprite.Sprite(temp)
 
-spr_sandbl = sprite.Sprite(pyglet.resource.image('res/img/block_sand.png'),batch=batch)
-spr_metalbl = sprite.Sprite(pyglet.resource.image('res/img/block_metal.png'),batch=batch)
-spr_ghost = sprite.Sprite(pyglet.resource.image('res/img/ghost.png'),batch=batch)
-spr_default = sprite.Sprite(pyglet.resource.image('res/img/default.png'),batch=batch)
+spr_sandbl = sprite.Sprite(pyglet.resource.image('res/img/BlockSand.png'),batch=batch)
+spr_metalbl = sprite.Sprite(pyglet.resource.image('res/img/BlockMetal.png'),batch=batch)
+spr_ghost = sprite.Sprite(pyglet.resource.image('res/img/EnemyGhost.png'),batch=batch)
+spr_default = sprite.Sprite(pyglet.resource.image('res/img/DEFAULT.png'),batch=batch)
 
-#Testing purposes only
+# Testing purposes only
 spr_teston = sprite.Sprite(pyglet.resource.image('res/img/TESTON.png'),batch=batch)
 spr_testoff = sprite.Sprite(pyglet.resource.image('res/img/TESTOFF.png'),batch=batch)
 
-
-bg_gravel = sprite.Sprite(pyglet.resource.image('res/img/bg_gravel.png'))
-bg_grass = sprite.Sprite(pyglet.resource.image('res/img/bg_grass.png'))
-
-sndplayer = pyglet.media.Player()
+# Backgrounds
+bg_gravel = sprite.Sprite(pyglet.resource.image('res/img/BG_Gravel.png'))
+bg_grass = sprite.Sprite(pyglet.resource.image('res/img/BG_Grass.png'))
 
 snd_crush = pyglet.resource.media("res/snd/Crush.ogg", streaming=False)
 snd_bounce = pyglet.resource.media("res/snd/Bounce.ogg", streaming=False)
@@ -56,63 +49,56 @@ spr_player.anchor_y=16
 player = player.Player(x=320,y=320)
 things = [player]
 # Generate blocks around the edges
-for i in range(0,640,TILE_SIZE):
+for i in range(0,constants.WINDOW_WIDTH,constants.TILE_SIZE):
     things.append(block.Block(i,0))
-for i in range(TILE_SIZE,480,TILE_SIZE):
+for i in range(constants.TILE_SIZE,constants.WINDOW_HEIGHT,constants.TILE_SIZE):
     things.append(block.Block(0,i))
-for i in range(TILE_SIZE,640,TILE_SIZE):
+for i in range(constants.TILE_SIZE,constants.WINDOW_WIDTH,constants.TILE_SIZE):
     things.append(block.Block(i,448))
-for i in range(TILE_SIZE,448,TILE_SIZE):
+for i in range(constants.TILE_SIZE,448,constants.TILE_SIZE):
     things.append(block.Block(608,i))
 
-for i in range(32,608,TILE_SIZE*2):
+for i in range(32,608,constants.TILE_SIZE*2):
     things.append(block.Block(i,192))
 
-for i in range(64,608,TILE_SIZE*2):
+for i in range(64,608,constants.TILE_SIZE*2):
     things.append(block.Block(i,256))
 
-
-things.append(enemy.Enemy(320,32))
-
-
-
+# Enemies
+for i in range(32,608,constants.TILE_SIZE*2):
+    things.append(enemy.Enemy(i,32))
 
 SPRITES = {"block": spr_sandbl,
            "player": spr_player,
            "ghost": spr_ghost}
 
 def is_snapped(entity):
-    if entity.x % TILE_SIZE == 0 and entity.y % TILE_SIZE == 0:
+    if entity.x % constants.TILE_SIZE == 0 and entity.y % constants.TILE_SIZE == 0:
         return True
     else:
         return False
 
 def is_blocked(x,y):
-    if x<0 or y<0 or x>640-TILE_SIZE or y>480-TILE_SIZE:
+    if x<0 or y<0 or x>constants.WINDOW_WIDTH-constants.TILE_SIZE or y>constants.WINDOW_HEIGHT-constants.TILE_SIZE:
         return True
 
-    for t in things:
-        if t.looks_like == "block":
-            if (t.x + TILE_SIZE > x and t.x <= x + TILE_SIZE) and (t.y + TILE_SIZE > y and t.y <= y + TILE_SIZE):
-                return True
-
-    return False
+    return not get_entity(x,y,"block") is None
 
 def is_colliding(a,b):
     if a == b:
         return False
-    if a.x + TILE_SIZE > b.x and a.x < b.x + TILE_SIZE:
-        if a.y + TILE_SIZE > b.y and a.y < b.y + TILE_SIZE:
+    if a.x + constants.TILE_SIZE > b.x and a.x < b.x + constants.TILE_SIZE:
+        if a.y + constants.TILE_SIZE > b.y and a.y < b.y + constants.TILE_SIZE:
             return True
 
     return False
 
 def get_entity(x, y, look):
     for t in things:
-        if t.looks_like == look and t.x + TILE_SIZE > x and t.x <= x and t.y + TILE_SIZE > y and t.y <= y:
+        if t.looks_like == look and t.x + constants.TILE_SIZE > x and t.x <= x and t.y + constants.TILE_SIZE > y and t.y <= y:
             return t
 
-    return DUMMY_ENTITY
+    return None
 
 @window.event
 def on_draw():
@@ -126,13 +112,13 @@ def on_draw():
             bg_grass.y = h * 256
             bg_grass.draw()
 
-    if is_blocked(frame % 640,frame % 480):
+    if is_blocked(frame*2 % constants.WINDOW_WIDTH,frame*2 % constants.WINDOW_HEIGHT):
         drawthis = spr_testoff
     else:
         drawthis = spr_teston
     
-    drawthis.x = frame % 640
-    drawthis.y = frame % 480
+    drawthis.x = frame*2 % constants.WINDOW_WIDTH
+    drawthis.y = frame*2 % constants.WINDOW_HEIGHT
     drawthis.draw()
 
 
@@ -185,24 +171,20 @@ def update(dt):
             player.vfacing = -1
             pressing = True
 
-        bl = get_entity(player.x + player.hfacing*TILE_SIZE, player.y + player.vfacing*TILE_SIZE,"block")
-        bl2 = get_entity(player.x + player.hfacing*TILE_SIZE*2, player.y + player.vfacing*TILE_SIZE*2,"block")
-        #if bl == DUMMY_ENTITY:
-        #    print("You are free to move forward.")
-        #else:
-        #    print(str(bl) + " is blocking your path.")
+        bl = get_entity(player.x + player.hfacing*constants.TILE_SIZE, player.y + player.vfacing*constants.TILE_SIZE,"block")
+        bl2 = get_entity(player.x + player.hfacing*constants.TILE_SIZE*2, player.y + player.vfacing*constants.TILE_SIZE*2,"block")
 
-        if bl == DUMMY_ENTITY:
+        if bl is None:
             if pressing:
-                player.hspeed = player.hfacing * PLAYER_SPEED
-                player.vspeed = player.vfacing * PLAYER_SPEED
+                player.hspeed = player.hfacing * constants.PLAYER_SPEED
+                player.vspeed = player.vfacing * constants.PLAYER_SPEED
                 player.step() # On the grid and free space ahead
         elif pdown:
             if not bl.is_moving():
-                if not bl2 == DUMMY_ENTITY:
+                if not bl2 is None:
                     if bl.crushed == 0:
                         snd_crush.play()
-                    bl.crush()
+                        bl.crush()
                 else:
                     bl.get_pushed(player.hfacing,player.vfacing)
                     snd_shoot.play()
@@ -218,30 +200,18 @@ def update(dt):
             if b.crushed >= 1:
                 things.remove(b)
                 continue
-        
+
+            f = get_entity(b.x + constants.TILE_SIZE + b.hspeed, b.y + constants.TILE_SIZE + b.vspeed,"block")
+
+            if b.is_moving() and not f is None and not f is b:
+                b.collide_with(f)
+                #snd_bounce.play()
+                print(str(b) + " collided with " + str(f))
+
+
             b.update()
 
-            for q in things:
-                if is_colliding(b,q) and q.looks_like == "block":
-                    if b.hspeed == q.hspeed or b.vspeed == q.vspeed:
-                        b.x -= b.hspeed
-                        b.y -= b.vspeed
-                        th = b.hspeed
-                        tv = b.vspeed
-                        b.hspeed = q.hspeed
-                        b.vspeed = q.vspeed
-                        q.hspeed = th
-                        q.vspeed = tv
-                        
-                        #break
-                    else:
-                        if not b.hspeed == 0 and q.hspeed == 0:
-                            b.bounce()
-                            sndplayer.queue(pyglet.media.load('res/snd/item1a.wav'))
-                
-
-
-
+    
     #Stop player from going out of bounds
     if player.x < 0:
         player.x = 0
@@ -249,15 +219,12 @@ def update(dt):
     if player.y < 0:
         player.y = 0
         player.stop()
-    if player.x > 640-TILE_SIZE:
-        player.x = 640-TILE_SIZE
+    if player.x > constants.WINDOW_WIDTH-constants.TILE_SIZE:
+        player.x = constants.WINDOW_WIDTH-constants.TILE_SIZE
         player.stop()
-    if player.y > 480-TILE_SIZE:
-        player.y = 480-TILE_SIZE
+    if player.y > constants.WINDOW_HEIGHT-constants.TILE_SIZE:
+        player.y = constants.WINDOW_HEIGHT-constants.TILE_SIZE
         player.stop()
-
-    
-
 
 @window.event
 def on_key_press(symbol, modifiers):
@@ -289,7 +256,7 @@ def on_key_release(symbol, modifiers):
         pdown = False
     
 
-pyglet.clock.schedule_interval(update, 1/60.0)
+pyglet.clock.schedule_interval(update, 1/float(constants.GAME_FPS))
 pyglet.app.run()
 event_loop = pyglet.app.EventLoop()
 event_loop.run()

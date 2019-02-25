@@ -1,0 +1,11 @@
+PLAYER_SPEED = 4 #Default speed of player
+TILE_SIZE = 32 #Size of a tile
+
+WINDOW_WIDTH = 640
+WINDOW_HEIGHT = 480
+GAME_FPS = 60
+
+# Blocks
+LOWEST_BLOCK_SPEED = 2
+INIT_BLOCK_SPEED = 8
+CRUSH_TIME = 32

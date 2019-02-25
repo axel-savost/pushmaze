@@ -22,10 +22,7 @@ class Entity:
         self.y += self.vspeed
 
     def is_moving(self):
-        if self.hspeed == 0 and self.vspeed == 0:
-            return False
-        else:
-            return True
+        return not (self.hspeed == 0 and self.vspeed == 0)
 
     def x_after_step(self):
         return self.x + self.hspeed
